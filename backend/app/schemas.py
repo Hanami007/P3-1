@@ -7,6 +7,8 @@ from app.models import Role
 
 class CardScanRequest(BaseModel):
     card_uid: str
+    ambient_noise_db: float | None = None
+    peak_noise_db: float | None = None
 
 
 class RoomOut(BaseModel):
@@ -36,11 +38,28 @@ class CardHolderOut(BaseModel):
     role: Role
 
 
+class StudentLiveStatus(BaseModel):
+    has_schedule: bool
+    day_of_week: int | None = None
+    day_name_th: str | None = None
+    current_time: str | None = None
+    status: str
+    minutes_late: int = 0
+    minutes_until_next: int | None = None
+    message: str
+    smart_greeting: str
+    current_class: dict | None = None
+    next_class: dict | None = None
+    exam_today: dict | None = None
+
+
 class CardScanResponse(BaseModel):
     recognized: bool
     holder: CardHolderOut | None = None
     role: Role
     message: str
+    smart_greeting: str | None = None
+    live_status: StudentLiveStatus | None = None
 
 
 class CourseOut(BaseModel):

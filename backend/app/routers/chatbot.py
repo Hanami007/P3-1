@@ -5,6 +5,7 @@ from app.database import get_db
 from app.models import AccessLog, CardHolder, ExamEntry, Role, ScheduleEntry
 from app.permissions import resolve_role
 from app.schemas import ChatRequest, ChatResponse
+from app.services.live_status import calculate_student_live_status
 from app.services.llm import LLMError, ask
 
 router = APIRouter(prefix="/api/chat", tags=["chatbot"])
@@ -17,6 +18,8 @@ def _build_student_context(db: Session, holder: CardHolder) -> str:
     chatbot's system prompt. Only ever called with the holder resolved from
     the caller's own card_uid (see resolve_role) -- never another
     student's -- so this can't leak someone else's timetable."""
+    live = calculate_student_live_status(db, holder)
+
     schedule = (
         db.query(ScheduleEntry)
         .filter_by(student_id=holder.id)
@@ -27,7 +30,19 @@ def _build_student_context(db: Session, holder: CardHolder) -> str:
         db.query(ExamEntry).filter_by(student_id=holder.id).order_by(ExamEntry.exam_date, ExamEntry.start_time).all()
     )
 
-    lines = [f"ชื่อ: {holder.full_name} (รหัสนักศึกษา {holder.student_id or '-'})"]
+    lines = [
+        f"ชื่อ: {holder.full_name} (รหัสนักศึกษา {holder.student_id or '-'})",
+        f"ข้อมูลสถานะ ณ ขณะนี้ (เวลา {live.get('current_time')} วัน{live.get('day_name_th')}): {live.get('message')}",
+    ]
+    if live.get("current_class"):
+        c = live["current_class"]
+        lines.append(f"- กำลังเรียนวิชา: {c['course_code']} {c['course_name']} ({c['start_time']}-{c['end_time']}) {c['room']}")
+    if live.get("next_class"):
+        n = live["next_class"]
+        lines.append(f"- วิชาถัดไป: {n['course_code']} {n['course_name']} ({n['start_time']}-{n['end_time']}) {n['room']}")
+    if live.get("exam_today"):
+        ex = live["exam_today"]
+        lines.append(f"- วันนี้มีสอบ: {ex['course_code']} {ex['course_name']} ({ex['start_time']}-{ex['end_time']}) {ex['room']}")
 
     lines.append("ตารางเรียนประจำสัปดาห์:")
     if schedule:
@@ -69,6 +84,9 @@ def chat(payload: ChatRequest, db: Session = Depends(get_db)):
         reply = ask(payload.message, student_context=student_context)
     except LLMError as exc:
         raise HTTPException(status_code=503, detail=str(exc)) from exc
+        reply = f"ขออภัยครับ ขณะนี้ระบบ AI เชื่อมต่อไม่สำเร็จ: {str(exc)}"
+    except Exception as exc:
+        reply = "ขออภัยครับ ขณะนี้ระบบ AI ประสบปัญหาการเชื่อมต่อชั่วคราว กรุณาลองใหม่อีกครั้ง หรือติดต่อห้องธุรการสาขา CS-A ชั้น 2 ครับ"
 
     db.add(
         AccessLog(

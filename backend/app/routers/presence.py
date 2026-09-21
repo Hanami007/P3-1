@@ -1,11 +1,32 @@
+import time
 from datetime import datetime
 
 from fastapi import APIRouter
+from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
 
 from app.services import camera_wake
 
 router = APIRouter(prefix="/api/presence", tags=["presence"])
+
+
+@router.get("/camera-feed")
+def camera_feed():
+    """Streams live camera frames as MJPEG for display on the kiosk UI."""
+    def frame_generator():
+        while True:
+            frame_bytes = camera_wake.get_latest_frame_jpeg()
+            if frame_bytes:
+                yield (
+                    b"--frame\r\n"
+                    b"Content-Type: image/jpeg\r\n\r\n" + frame_bytes + b"\r\n"
+                )
+            time.sleep(0.08)
+
+    return StreamingResponse(
+        frame_generator(),
+        media_type="multipart/x-mixed-replace; boundary=frame",
+    )
 
 
 @router.get("")

@@ -10,6 +10,22 @@ from app.models import CardHolder, Role
 
 
 @pytest.fixture()
+def db_session():
+    engine = create_engine(
+        "sqlite:///:memory:",
+        connect_args={"check_same_thread": False},
+        poolclass=StaticPool,
+    )
+    TestingSession = sessionmaker(autocommit=False, autoflush=False, bind=engine)
+    Base.metadata.create_all(bind=engine)
+    db = TestingSession()
+    try:
+        yield db
+    finally:
+        db.close()
+
+
+@pytest.fixture()
 def client():
     engine = create_engine(
         "sqlite:///:memory:",

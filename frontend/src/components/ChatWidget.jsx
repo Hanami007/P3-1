@@ -22,7 +22,7 @@ function speak(text) {
   });
 }
 
-export default function ChatWidget({ cardUid, autoStart = false, greeting }) {
+export default function ChatWidget({ cardUid, autoStart = false, greeting, noiseData, quickPrompts = [] }) {
   const [messages, setMessages] = useState([
     { role: "bot", text: greeting || "สวัสดีค่ะ สอบถามข้อมูลสาขาวิทยาการคอมพิวเตอร์ อาคาร หรือสถานที่ได้เลยค่ะ" },
   ]);
@@ -37,13 +37,26 @@ export default function ChatWidget({ cardUid, autoStart = false, greeting }) {
   const errorStreakRef = useRef(0);
   voiceModeRef.current = voiceMode;
 
+  useEffect(() => {
+    if (greeting) {
+      setMessages([{ role: "bot", text: greeting }]);
+    }
+  }, [greeting]);
+
   async function respondTo(text) {
+    if (!text || busy) return;
     setMessages((m) => [...m, { role: "user", text }]);
     setBusy(true);
     let reply = "";
     try {
       reply = (await api.chat(text, cardUid)).reply;
       setMessages((m) => [...m, { role: "bot", text: reply }]);
+      if (voiceModeRef.current) {
+        setSpeaking(true);
+        await speak(reply);
+        setSpeaking(false);
+        if (voiceModeRef.current) startListening();
+      }
     } catch (err) {
       reply = `ขออภัย เกิดข้อผิดพลาด: ${err.message}`;
       setMessages((m) => [...m, { role: "bot", text: reply }]);
@@ -155,6 +168,30 @@ export default function ChatWidget({ cardUid, autoStart = false, greeting }) {
         ))}
         {busy && <div className="chat-bubble bot">กำลังพิมพ์...</div>}
       </div>
+
+      {/* Noise Warning if ambient/peak noise was loud */}
+      {noiseData && (noiseData.condition === "noisy" || noiseData.peakDb > 75) && (
+        <div className="chat-noise-alert">
+          <span>🔊 ตรวจพบเสียงรอบข้างดัง (Peak {noiseData.peakDb} dB) — แนะนำให้ออกเสียงชัดเจนหรือเข้าใกล้ไมค์</span>
+        </div>
+      )}
+
+      {/* Quick Prompts Bar */}
+      {quickPrompts.length > 0 && (
+        <div className="quick-prompts-bar">
+          <span className="quick-prompts-label">คำถามด่วน:</span>
+          {quickPrompts.map((p, idx) => (
+            <button
+              key={idx}
+              className="quick-chip"
+              disabled={busy}
+              onClick={() => respondTo(p)}
+            >
+              {p}
+            </button>
+          ))}
+        </div>
+      )}
 
       {!VOICE_SUPPORTED && autoStart && (
         <p className="error-text" style={{ fontSize: 13 }}>

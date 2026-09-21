@@ -24,7 +24,17 @@ async function request(path, { method = "GET", body, cardUid } = {}) {
 }
 
 export const api = {
-  scanCard: (cardUid) => request("/cards/scan", { method: "POST", body: { card_uid: cardUid } }),
+  scanCard: (cardUid, noiseData = {}) =>
+    request("/cards/scan", {
+      method: "POST",
+      body: {
+        card_uid: cardUid,
+        ambient_noise_db: noiseData.ambient_noise_db,
+        peak_noise_db: noiseData.peak_noise_db,
+      },
+    }),
+  getLiveStatus: (cardUid) =>
+    request(`/students/${encodeURIComponent(cardUid)}/live-status`, { cardUid }),
   getSchedule: (cardUid) => request(`/students/${encodeURIComponent(cardUid)}/schedule`, { cardUid }),
   getExams: (cardUid) => request(`/students/${encodeURIComponent(cardUid)}/exams`, { cardUid }),
   getBuildings: () => request("/buildings"),

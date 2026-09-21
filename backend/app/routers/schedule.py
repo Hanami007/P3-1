@@ -4,7 +4,8 @@ from sqlalchemy.orm import Session
 from app.database import get_db
 from app.models import AccessLog, ExamEntry, Role, ScheduleEntry
 from app.permissions import ROLE_HEADER, ensure_role, resolve_role
-from app.schemas import ExamEntryOut, ScheduleEntryOut
+from app.schemas import ExamEntryOut, ScheduleEntryOut, StudentLiveStatus
+from app.services.live_status import calculate_student_live_status
 
 router = APIRouter(prefix="/api/students", tags=["schedule"])
 
@@ -49,3 +50,19 @@ def get_exams(
     db.add(AccessLog(card_uid=x_card_uid, role=role.value, action="exam_view", granted=True))
     db.commit()
     return entries
+
+
+@router.get("/{student_card_uid}/live-status", response_model=StudentLiveStatus)
+def get_live_status(
+    student_card_uid: str,
+    db: Session = Depends(get_db),
+    x_card_uid: str | None = ROLE_HEADER,
+):
+    role = _authorize(db, student_card_uid, x_card_uid)
+    holder, _ = resolve_role(db, student_card_uid)
+    if not holder:
+        raise HTTPException(status_code=404, detail="Student not found")
+    status_data = calculate_student_live_status(db, holder)
+    db.add(AccessLog(card_uid=x_card_uid, role=role.value, action="live_status_view", granted=True))
+    db.commit()
+    return status_data

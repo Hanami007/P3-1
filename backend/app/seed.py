@@ -70,7 +70,7 @@ def run():
             {"card_uid": "04A1B2C3"},
             {
                 "student_id": "6604101335",
-                "full_name": "นักศึกษาวิทคอม ทดสอบ",
+                "full_name": "ธราเทพ จันทร์ดำ",
                 "program": "วิทยาการคอมพิวเตอร์",
                 "role": Role.CS_STUDENT,
             },

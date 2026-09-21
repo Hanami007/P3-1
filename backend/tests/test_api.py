@@ -61,3 +61,12 @@ def test_simulated_face_recognition_is_reported_once(client):
 
     second = client.get("/api/presence").json()
     assert second["recognized_card_uid"] is None
+
+
+def test_get_live_status_endpoint(client):
+    resp = client.get("/api/students/STUDENT1/live-status", headers={"X-Card-UID": "STUDENT1"})
+    assert resp.status_code == 200
+    data = resp.json()
+    assert "has_schedule" in data
+    assert "status" in data
+    assert "smart_greeting" in data

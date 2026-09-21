@@ -45,6 +45,12 @@ _thread: threading.Thread | None = None
 _recognized_consumed = False
 _face_first_seen: float | None = None
 _face_last_seen: float | None = None
+_latest_frame_jpeg: bytes | None = None
+
+
+def get_latest_frame_jpeg() -> bytes | None:
+    with _lock:
+        return _latest_frame_jpeg
 
 
 def get_state() -> PresenceState:
@@ -126,7 +132,16 @@ def _detection_loop():
         logger.warning("opencv not installed; camera wake disabled")
         return
 
-    capture = cv2.VideoCapture(settings.camera_index)
+    import sys
+    capture = None
+    if sys.platform == "win32":
+        try:
+            capture = cv2.VideoCapture(settings.camera_index, cv2.CAP_DSHOW)
+        except Exception:
+            pass
+    if capture is None or not capture.isOpened():
+        capture = cv2.VideoCapture(settings.camera_index)
+
     if not capture.isOpened():
         logger.warning("No camera found at index %s; camera wake disabled", settings.camera_index)
         with _lock:
@@ -139,14 +154,25 @@ def _detection_loop():
     face_cascade = cv2.CascadeClassifier(cv2.data.haarcascades + "haarcascade_frontalface_default.xml")
     logger.info("Camera wake detection started on index %s", settings.camera_index)
 
+    global _latest_frame_jpeg
+
     try:
         while not _stop_event.is_set():
             ok, frame = capture.read()
             if not ok:
-                time.sleep(1)
+                time.sleep(0.5)
                 continue
             gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
             faces = face_cascade.detectMultiScale(gray, scaleFactor=1.2, minNeighbors=5, minSize=(60, 60))
+
+            display_frame = frame.copy()
+            for (fx, fy, fw, fh) in faces:
+                cv2.rectangle(display_frame, (fx, fy), (fx + fw, fy + fh), (59, 158, 255), 2)
+
+            ret, encoded = cv2.imencode(".jpg", display_frame, [cv2.IMWRITE_JPEG_QUALITY, 70])
+            if ret:
+                with _lock:
+                    _latest_frame_jpeg = encoded.tobytes()
 
             if len(faces) > 0:
                 mark_seen()
@@ -165,7 +191,7 @@ def _detection_loop():
             else:
                 _on_no_face()
 
-            time.sleep(0.3)
+            time.sleep(0.08)
     finally:
         capture.release()
 
