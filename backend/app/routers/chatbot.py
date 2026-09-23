@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
 
 from app.database import get_db
@@ -83,9 +83,8 @@ def chat(payload: ChatRequest, db: Session = Depends(get_db)):
     try:
         reply = ask(payload.message, student_context=student_context)
     except LLMError as exc:
-        raise HTTPException(status_code=503, detail=str(exc)) from exc
-        reply = f"ขออภัยครับ ขณะนี้ระบบ AI เชื่อมต่อไม่สำเร็จ: {str(exc)}"
-    except Exception as exc:
+        reply = f"ขออภัยครับ ขณะนี้ระบบ AI เชื่อมต่อไม่สำเร็จ: {exc}"
+    except Exception:
         reply = "ขออภัยครับ ขณะนี้ระบบ AI ประสบปัญหาการเชื่อมต่อชั่วคราว กรุณาลองใหม่อีกครั้ง หรือติดต่อห้องธุรการสาขา CS-A ชั้น 2 ครับ"
 
     db.add(

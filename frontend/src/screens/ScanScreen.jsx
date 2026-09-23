@@ -4,7 +4,7 @@ import { api, roleToPath } from "../api";
 import { useAudioNoiseAnalyzer } from "../hooks/useAudioNoiseAnalyzer";
 
 const DEMO_CARDS = [
-  { uid: "04A1B2C3", label: "ธราเทพ จันทร์ดำ (6604101335)" },
+  { uid: "04A1B2C3", label: "นักศึกษาวิทคอม" },
   { uid: "04112233", label: "นักศึกษาสาขาอื่น" },
   { uid: "04D4E5F6", label: "เจ้าหน้าที่สาขา" },
 ];

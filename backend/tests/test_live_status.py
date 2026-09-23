@@ -36,9 +36,13 @@ def test_live_status_ongoing_late(db_session):
     status = calculate_student_live_status(db_session, holder, current_dt=test_dt)
     assert status["status"] == "ongoing_late"
     assert status["minutes_late"] == 20
-    assert "สายแล้วนะ" in status["smart_greeting"]
-    assert "CS201" in status["smart_greeting"]
-    assert "ห้อง 301" in status["smart_greeting"]
+    # smart_greeting is spoken aloud (TTS), so it's kept short and casual --
+    # course name + urgency, not a full recitation of code/room/exact times.
+    assert "สาย" in status["smart_greeting"]
+    assert "โครงสร้างข้อมูล" in status["smart_greeting"]
+    # The precise course code and room still show up in the on-screen message.
+    assert "CS201" in status["message"]
+    assert "ห้อง 301" in status["current_class"]["room"]
 
 
 def test_live_status_upcoming_soon(db_session):

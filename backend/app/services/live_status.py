@@ -113,62 +113,41 @@ def calculate_student_live_status(
 
     first_name = holder.full_name.split()[0]
 
-    # 3. Generate dynamic smart greeting & status
+    # 3. Generate dynamic smart greeting & status.
+    # Kept short and casual on purpose -- this gets spoken aloud (TTS) the
+    # moment someone is recognized, so it should sound like a friend giving
+    # a quick heads-up, not a formal announcement reciting every detail.
+    # The exact times/rooms still go in `message` and the structured
+    # current_class/next_class/exam_today fields for on-screen display.
     if exam_info:
         status = "exam_today"
-        smart_greeting = (
-            f"สวัสดีครับคุณ {first_name} วันนี้คุณมีสอบวิชา {exam_info['course_code']} "
-            f"{exam_info['course_name']} ({exam_info['exam_type']}) เวลา {exam_info['start_time']} - "
-            f"{exam_info['end_time']} น. ที่{exam_info['room']} ขอให้โชคดีกับการสอบนะครับ"
-        )
+        smart_greeting = f"{first_name} วันนี้มีสอบวิชา{exam_info['course_name']}นะ ขอให้โชคดี!"
         message = f"วันนี้มีสอบวิชา {exam_info['course_code']} {exam_info['room']}"
     elif ongoing_class:
         if minutes_late >= 10:
             status = "ongoing_late"
-            smart_greeting = (
-                f"สวัสดีครับคุณ {first_name} ตอนนี้มีเรียนวิชา {ongoing_class['course_code']} "
-                f"{ongoing_class['course_name']} เวลา {ongoing_class['start_time']} - {ongoing_class['end_time']} น. "
-                f"ที่{ongoing_class['room']} ตอนนี้เลยเวลาเริ่มเรียนมา {minutes_late} นาทีแล้ว สายแล้วนะ! รีบเข้าห้องเรียนนะครับ"
-            )
+            smart_greeting = f"{first_name} ตอนนี้เข้าเรียนวิชา{ongoing_class['course_name']}สายไปแล้ว {minutes_late} นาทีนะ รีบไปเลย!"
             message = f"กำลังเรียนวิชา {ongoing_class['course_code']} (สาย {minutes_late} นาที)"
         else:
             status = "ongoing_in_class"
-            smart_greeting = (
-                f"สวัสดีครับคุณ {first_name} ตอนนี้มีเรียนวิชา {ongoing_class['course_code']} "
-                f"{ongoing_class['course_name']} เวลา {ongoing_class['start_time']} - {ongoing_class['end_time']} น. "
-                f"ที่{ongoing_class['room']} อาจารย์กำลังสอนอยู่ รีบเข้าห้องเรียนนะครับ"
-            )
+            smart_greeting = f"{first_name} ตอนนี้ถึงเวลาเรียนวิชา{ongoing_class['course_name']}แล้วนะ ไปเข้าห้องเรียนกันเถอะ!"
             message = f"กำลังเรียนวิชา {ongoing_class['course_code']} ({ongoing_class['room']})"
     elif next_class:
         if minutes_until_next is not None and minutes_until_next <= 45:
             status = "upcoming_soon"
-            smart_greeting = (
-                f"สวัสดีครับคุณ {first_name} อีก {minutes_until_next} นาที มีเรียนวิชา {next_class['course_code']} "
-                f"{next_class['course_name']} เวลา {next_class['start_time']} น. ที่{next_class['room']} "
-                f"อย่าลืมเตรียมตัวเข้าเรียนนะครับ"
-            )
+            smart_greeting = f"{first_name} อีก {minutes_until_next} นาทีจะถึงเวลาเรียนวิชา{next_class['course_name']}แล้วนะ เตรียมตัวได้เลย"
             message = f"วิชาต่อไป: {next_class['course_code']} เวลา {next_class['start_time']} น. (อีก {minutes_until_next} นาที)"
         else:
             status = "upcoming_later"
-            smart_greeting = (
-                f"สวัสดีครับคุณ {first_name} วันนี้คุณมีเรียนวิชา {next_class['course_code']} "
-                f"{next_class['course_name']} เวลา {next_class['start_time']} - {next_class['end_time']} น. "
-                f"ที่{next_class['room']} ครับ มีอะไรให้ช่วยสอบถามได้เลยครับ"
-            )
+            smart_greeting = f"สวัสดี {first_name} วันนี้มีเรียนวิชา{next_class['course_name']}ด้วยนะ มีอะไรให้ช่วยถามได้เลย"
             message = f"วิชาถัดไปวันนี้: {next_class['course_code']} เวลา {next_class['start_time']} น."
     elif today_schedules:
         status = "finished_today"
-        smart_greeting = (
-            f"สวัสดีครับคุณ {first_name} สำหรับวันนี้คุณเรียนครบทุกวิชาตามตารางแล้วครับ "
-            f"มีข้อสงสัยเรื่องประกาศหรือสถานที่สอบถามได้เลยครับ"
-        )
+        smart_greeting = f"{first_name} วันนี้เรียนครบทุกวิชาแล้วนะ พักผ่อนได้เลย มีอะไรให้ช่วยถามได้"
         message = "เรียนครบทุกวิชาสำหรับวันนี้แล้ว"
     else:
         status = "no_classes_today"
-        smart_greeting = (
-            f"สวัสดีครับคุณ {first_name} วัน{_DAY_NAMES_TH[day_of_week]}นี้ไม่มีตารางเรียนครับ "
-            f"สอบถามข้อมูลอาคาร สถานที่ หรือเรื่องอื่น ๆ ได้เลยครับ"
-        )
+        smart_greeting = f"สวัสดี {first_name} วัน{_DAY_NAMES_TH[day_of_week]}นี้ไม่มีเรียนนะ มีอะไรให้ช่วยถามได้เลย"
         message = f"วัน{_DAY_NAMES_TH[day_of_week]} ไม่มีตารางเรียน"
 
     return {

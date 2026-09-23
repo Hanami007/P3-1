@@ -65,3 +65,19 @@ def simulate_recognition(payload: SimulateRecognitionRequest):
     real hardware or enrolled face images."""
     camera_wake.simulate_recognition(payload.card_uid)
     return {"recognized_card_uid": payload.card_uid}
+
+
+class RfidTapRequest(BaseModel):
+    card_uid: str
+
+
+@router.post("/rfid-tap")
+def rfid_tap(payload: RfidTapRequest):
+    """Production endpoint for a physical RFID/NFC reader that connects over
+    SPI/GPIO instead of acting as a USB keyboard (e.g. an RC522 module) --
+    it can't type into the browser's hidden input, so a small always-on
+    companion script (``backend/rfid_reader_daemon.py``) polls the reader
+    and posts each tap here instead. A USB keyboard-wedge reader doesn't
+    need this endpoint at all."""
+    camera_wake.report_rfid_tap(payload.card_uid)
+    return {"recognized_card_uid": payload.card_uid}

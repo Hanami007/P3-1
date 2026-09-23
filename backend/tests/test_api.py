@@ -63,6 +63,17 @@ def test_simulated_face_recognition_is_reported_once(client):
     assert second["recognized_card_uid"] is None
 
 
+def test_rfid_tap_is_reported_once(client):
+    resp = client.post("/api/presence/rfid-tap", json={"card_uid": "STUDENT1"})
+    assert resp.status_code == 200
+
+    first = client.get("/api/presence").json()
+    assert first["recognized_card_uid"] == "STUDENT1"
+
+    second = client.get("/api/presence").json()
+    assert second["recognized_card_uid"] is None
+
+
 def test_get_live_status_endpoint(client):
     resp = client.get("/api/students/STUDENT1/live-status", headers={"X-Card-UID": "STUDENT1"})
     assert resp.status_code == 200

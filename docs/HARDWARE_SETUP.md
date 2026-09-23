@@ -11,12 +11,54 @@
 
 โค้ดนี้ออกแบบให้เครื่องอ่านทำงานแบบ **keyboard wedge**: เมื่อแตะบัตร เครื่องอ่านจะ "พิมพ์"
 UID ของบัตรตามด้วยปุ่ม Enter ลงในช่อง input ที่ถูก focus ไว้อยู่แล้ว (ดู
-`frontend/src/screens/CardScanScreen.jsx`) วิธีนี้ทำให้ไม่ต้องเขียนไดรเวอร์เฉพาะสำหรับ
+`frontend/src/screens/ScanScreen.jsx`) วิธีนี้ทำให้ไม่ต้องเขียนไดรเวอร์เฉพาะสำหรับ
 เครื่องอ่านแต่ละรุ่น เสียบ USB แล้วใช้งานได้ทันที
 
-ถ้าใช้เครื่องอ่านที่ต่อผ่าน UART/GPIO (เช่นโมดูล RC522 ต่อผ่าน SPI) ให้เขียนสคริปต์เสริมที่
-อ่านค่า UID จากโมดูล แล้วจำลอง keyboard event (เช่นด้วยไลบรารี `evdev` หรือ `pyautogui`)
-หรือจะยิง UID ตรงไปที่ `POST /api/cards/scan` จาก backend ก็ได้เช่นกัน
+### เครื่องอ่านแบบ RC522 (ต่อผ่าน GPIO/SPI)
+
+โมดูล RC522 **ไม่ใช่** keyboard-wedge -- มันต่อกับขา GPIO ของ Raspberry Pi โดยตรงผ่าน SPI
+ไม่สามารถ "พิมพ์" ใส่เบราว์เซอร์ได้เอง จึงต้องรันสคริปต์เสริมแยกต่างหากคอยอ่านค่าจากโมดูล
+แล้วส่ง UID เข้าระบบผ่าน endpoint `POST /api/presence/rfid-tap` ซึ่งจะเผยแพร่ค่าไปยัง
+mechanism เดียวกับที่กล้องจดจำใบหน้าใช้ -- หน้าเว็บ (`ScanScreen.jsx`) poll `/api/presence`
+อยู่แล้วและจะรับ auto-login ได้ทันทีโดยไม่ต้องแก้โค้ด frontend เลย
+
+**การต่อสาย** (3.3V เท่านั้น -- ห้ามต่อ 5V เด็ดขาด จะทำให้โมดูลเสีย):
+
+| RC522 | Raspberry Pi GPIO |
+|---|---|
+| SDA  | GPIO8 (CE0, pin 24) |
+| SCK  | GPIO11 (pin 23) |
+| MOSI | GPIO10 (pin 19) |
+| MISO | GPIO9 (pin 21) |
+| IRQ  | ไม่ต้องต่อ |
+| GND  | GND (pin 6) |
+| RST  | GPIO25 (pin 22) |
+| 3.3V | 3.3V (pin 1) |
+
+**ตั้งค่าและติดตั้ง** (แพ็กเกจกลุ่มนี้ใช้ได้เฉพาะบน Raspberry Pi จริงเท่านั้น จึงไม่ได้อยู่ใน
+`requirements.txt` หลัก):
+
+```bash
+sudo raspi-config    # Interface Options -> SPI -> Enable แล้ว reboot
+pip install mfrc522 RPi.GPIO spidev requests
+```
+
+**รันสคริปต์** (แยกโปรเซสต่างหากจาก `uvicorn`, ปล่อยให้ทำงานตลอดเวลา เช่นผ่าน systemd):
+
+```bash
+cd backend
+python rfid_reader_daemon.py
+```
+
+แตะบัตรครั้งแรกเพื่อดู UID ที่พิมพ์ออกมาทาง terminal (เช่น `Card tapped: 123456789012`)
+แล้วนำค่านั้นไปเพิ่มเป็น `card_uid` ของ `CardHolder` จริงใน `backend/app/seed.py` (ดูตัวอย่าง
+รูปแบบได้จากบัตร demo ที่มีอยู่แล้ว) จากนั้นรัน `python -m app.seed` เพื่อบันทึกลงฐานข้อมูล
+(สคริปต์นี้ safe รันซ้ำได้ ไม่กระทบข้อมูลเดิม)
+
+### เครื่องอ่านแบบ UART อื่น ๆ
+
+ถ้าใช้เครื่องอ่านที่ต่อผ่าน UART และไม่ใช่ keyboard-wedge ก็ใช้แนวทางเดียวกับ RC522 ได้เลย:
+เขียนสคริปต์อ่านค่า UID จากพอร์ต serial แล้ว POST ไปที่ `/api/presence/rfid-tap`
 
 ## กล้องตรวจจับผู้ใช้ (Camera Wake)
 

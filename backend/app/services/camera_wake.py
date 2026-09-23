@@ -85,14 +85,29 @@ def mark_seen():
         _state.last_seen = datetime.utcnow()
 
 
-def simulate_recognition(card_uid: str):
-    """Dev/demo helper standing in for a real 3-second face match."""
+def _set_recognized(card_uid: str):
     global _recognized_consumed
     with _lock:
         _state.awake = True
         _state.last_seen = datetime.utcnow()
         _state.recognized_card_uid = card_uid
         _recognized_consumed = False
+
+
+def simulate_recognition(card_uid: str):
+    """Dev/demo helper standing in for a real 3-second face match."""
+    _set_recognized(card_uid)
+
+
+def report_rfid_tap(card_uid: str):
+    """Called when a real RFID/NFC reader that can't type into the browser
+    (e.g. an RC522 module wired to GPIO/SPI, read by
+    ``backend/rfid_reader_daemon.py``) picks up a card tap out-of-band.
+    Publishes it the same way a recognized face is published, so the
+    frontend's existing presence-polling auto-login flow picks it up with
+    no frontend changes -- a USB keyboard-wedge reader doesn't need this at
+    all since it types straight into the page's hidden input."""
+    _set_recognized(card_uid)
 
 
 def _on_face_detected():
