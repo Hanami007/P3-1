@@ -1,8 +1,12 @@
+from pathlib import Path
+
 from pydantic_settings import BaseSettings, SettingsConfigDict
+
+_BACKEND_DIR = Path(__file__).resolve().parent.parent
 
 
 class Settings(BaseSettings):
-    model_config = SettingsConfigDict(env_file=".env", extra="ignore")
+    model_config = SettingsConfigDict(env_file=_BACKEND_DIR / ".env", extra="ignore")
 
     llm_provider: str = "claude"
     anthropic_api_key: str = ""
@@ -14,7 +18,9 @@ class Settings(BaseSettings):
     ollama_base_url: str = "http://localhost:11434"
     ollama_model: str = "llama3.1"
 
-    database_url: str = "sqlite:///./kiosk.db"
+    # Absolute path so the app, seed script and daemons all hit the same
+    # backend/kiosk.db no matter which directory they are started from.
+    database_url: str = f"sqlite:///{(_BACKEND_DIR / 'kiosk.db').as_posix()}"
 
     cors_origins: str = "http://localhost:5173,http://localhost:3000"
 

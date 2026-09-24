@@ -54,8 +54,8 @@
      [`HARDWARE_SETUP.md`](HARDWARE_SETUP.md)) ถ้ายังไม่มีใครลงทะเบียน ระบบจะปิดการจดจำใบหน้า
      โดยอัตโนมัติและ fallback เป็นแตะบัตร/แตะหน้าจอแทน ไม่ error
 4. **Chatbot เป็น retrieval แบบง่าย (system-prompt grounding) และคุยด้วยเสียงได้.** ข้อมูล
-   สาขา/อาคาร/FAQ อยู่ใน `backend/app/data/knowledge_base.json` และถูกฝังลง system prompt
-   ทุกครั้งที่เรียก LLM สลับ provider ได้ระหว่าง Gemini API (ฟรี), Claude API, หรือ Ollama
+   สาขา/บุคลากร/อาคาร/ห้อง/ช่องทางติดต่อเมื่อมีปัญหา อ่านสดจากฐานข้อมูล
+   (`backend/app/services/knowledge.py`) และฝังลง system prompt ทุกครั้งที่เรียก LLM สลับ provider ได้ระหว่าง Gemini API (ฟรี), Claude API, หรือ Ollama
    (local) ผ่าน `LLM_PROVIDER` ใน `.env` — ฝั่ง frontend ใช้ Web Speech API ของเบราว์เซอร์
    (`SpeechRecognition` ถอดเสียงเป็นข้อความ, `speechSynthesis` พูดคำตอบกลับ) ทำงานล้วน ๆ ใน
    เบราว์เซอร์โดยไม่ต้องมี backend เพิ่ม เมื่อเข้าสู่ระบบด้วยการจดจำใบหน้า ระบบจะเริ่มสนทนาด้วย

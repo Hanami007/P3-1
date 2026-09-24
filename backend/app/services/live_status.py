@@ -2,8 +2,22 @@ from datetime import datetime, time
 from sqlalchemy.orm import Session
 
 from app.models import CardHolder, ExamEntry, Role, ScheduleEntry
+from app.services.student_data import exams_query, schedule_query
 
 _DAY_NAMES_TH = ["จันทร์", "อังคาร", "พุธ", "พฤหัสบดี", "ศุกร์", "เสาร์", "อาทิตย์"]
+
+
+def room_label(room) -> str:
+    if room is None:
+        return "ไม่ระบุห้อง"
+    label = f"ห้อง {room.room_number}"
+    if room.floor is not None:
+        label += f" (ชั้น {room.floor})"
+    if room.building is not None:
+        # Include the name, not just the number -- students know it as
+        # "ตึกวิท", and the chatbot repeats whatever it is given here.
+        label += f" {room.building.spoken_name} (อาคาร {room.building.code})"
+    return label
 
 
 def _parse_time_str(t_str: str) -> time:
@@ -45,8 +59,8 @@ def calculate_student_live_status(
 
     # 1. Check for exams today
     exams_today = (
-        db.query(ExamEntry)
-        .filter(ExamEntry.student_id == holder.id, ExamEntry.exam_date == today_date_str)
+        exams_query(db, holder.id)
+        .filter(ExamEntry.exam_date == today_date_str)
         .order_by(ExamEntry.start_time)
         .all()
     )
@@ -54,20 +68,19 @@ def calculate_student_live_status(
     exam_info = None
     if exams_today:
         ex = exams_today[0]
-        room_label = f"ห้อง {ex.room.room_number}" if ex.room else "ไม่ระบุห้อง"
         exam_info = {
             "course_code": ex.course.code,
             "course_name": ex.course.name_th,
             "exam_type": "ปลายภาค" if ex.exam_type == "final" else "กลางภาค",
             "start_time": ex.start_time,
             "end_time": ex.end_time,
-            "room": room_label,
+            "room": room_label(ex.room),
         }
 
     # 2. Check today's classes
     today_schedules = (
-        db.query(ScheduleEntry)
-        .filter(ScheduleEntry.student_id == holder.id, ScheduleEntry.day_of_week == day_of_week)
+        schedule_query(db, holder.id)
+        .filter(ScheduleEntry.day_of_week == day_of_week)
         .order_by(ScheduleEntry.start_time)
         .all()
     )
@@ -81,11 +94,7 @@ def calculate_student_live_status(
     for entry in today_schedules:
         start_t = _parse_time_str(entry.start_time)
         end_t = _parse_time_str(entry.end_time)
-        room_name = (
-            f"ห้อง {entry.room.room_number} (ชั้น {entry.room.floor})"
-            if entry.room
-            else "ไม่ระบุห้อง"
-        )
+        room_name = room_label(entry.room)
         item = {
             "course_code": entry.course.code,
             "course_name": entry.course.name_th,
@@ -112,6 +121,11 @@ def calculate_student_live_status(
                 minutes_until_next = diff_minutes
 
     first_name = holder.full_name.split()[0]
+    # full_name may carry a Thai title ("นายจักรพรรดิ์") -- greet by name only.
+    for prefix in ("นางสาว", "นาย", "นาง"):
+        if first_name.startswith(prefix) and len(first_name) > len(prefix):
+            first_name = first_name[len(prefix):]
+            break
 
     # 3. Generate dynamic smart greeting & status.
     # Kept short and casual on purpose -- this gets spoken aloud (TTS) the

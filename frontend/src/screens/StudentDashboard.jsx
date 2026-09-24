@@ -134,7 +134,9 @@ export default function StudentDashboard({ session, onEndSession }) {
                         <td>{DAY_NAMES_TH[s.day_of_week]}</td>
                         <td>{s.start_time} - {s.end_time}</td>
                         <td>{s.course.code} {s.course.name_th}</td>
-                        <td>{s.room ? `${s.room.room_number} (ชั้น ${s.room.floor})` : "-"}</td>
+                        <td>
+                          {s.room ? `${s.room.room_number}${s.room.floor != null ? ` (ชั้น ${s.room.floor})` : ""}` : "-"}
+                        </td>
                       </tr>
                     ))}
                     {schedule.length === 0 && (
@@ -163,8 +165,8 @@ export default function StudentDashboard({ session, onEndSession }) {
                   <tbody>
                     {exams.map((e) => (
                       <tr key={e.id}>
-                        <td>{e.exam_date}</td>
-                        <td>{e.start_time} - {e.end_time}</td>
+                        <td>{e.exam_date ?? "รอประกาศ"}</td>
+                        <td>{e.start_time ? `${e.start_time} - ${e.end_time}` : "-"}</td>
                         <td>{e.course.code} {e.course.name_th}</td>
                         <td>{e.room ? e.room.room_number : "-"}</td>
                         <td>{e.exam_type === "final" ? "ปลายภาค" : "กลางภาค"}</td>

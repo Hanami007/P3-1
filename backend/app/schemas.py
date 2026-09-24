@@ -15,7 +15,7 @@ class RoomOut(BaseModel):
     model_config = ConfigDict(from_attributes=True)
     id: int
     room_number: str
-    floor: int
+    floor: int | None = None
     room_type: str | None = None
 
 
@@ -25,6 +25,7 @@ class BuildingOut(BaseModel):
     code: str
     name_th: str
     name_en: str | None = None
+    short_name: str | None = None
     description: str | None = None
     rooms: list[RoomOut] = []
 
@@ -84,9 +85,9 @@ class ScheduleEntryOut(BaseModel):
 class ExamEntryOut(BaseModel):
     model_config = ConfigDict(from_attributes=True)
     id: int
-    exam_date: str
-    start_time: str
-    end_time: str
+    exam_date: str | None = None  # None = not announced yet
+    start_time: str | None = None
+    end_time: str | None = None
     exam_type: str
     course: CourseOut
     room: RoomOut | None = None

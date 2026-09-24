@@ -7,6 +7,23 @@ const speechSynthesisSupported = typeof window !== "undefined" && "speechSynthes
 const VOICE_SUPPORTED = Boolean(SpeechRecognitionCtor) && speechSynthesisSupported;
 const MAX_LISTEN_ERRORS = 3;
 
+// Setting utterance.lang alone isn't enough: if the OS default voice is
+// English, Chrome/Edge read Thai text with it. Pick a Thai voice explicitly.
+// getVoices() is empty until the browser fires "voiceschanged", so cache it.
+let thaiVoice = null;
+
+function pickThaiVoice() {
+  const thai = window.speechSynthesis.getVoices().filter((v) => v.lang?.toLowerCase().replace("_", "-").startsWith("th"));
+  // Prefer Google's (Chrome) or Microsoft's (Edge/Windows) Thai voices.
+  thaiVoice = thai.find((v) => /google/i.test(v.name)) || thai.find((v) => /microsoft/i.test(v.name)) || thai[0] || null;
+  if (!thaiVoice) console.warn("No Thai speech voice installed -- replies will be read with the default voice");
+}
+
+if (speechSynthesisSupported) {
+  pickThaiVoice();
+  window.speechSynthesis.addEventListener("voiceschanged", pickThaiVoice);
+}
+
 function speak(text) {
   return new Promise((resolve) => {
     if (!speechSynthesisSupported || !text) {
@@ -16,6 +33,7 @@ function speak(text) {
     window.speechSynthesis.cancel();
     const utterance = new SpeechSynthesisUtterance(text);
     utterance.lang = "th-TH";
+    if (thaiVoice) utterance.voice = thaiVoice;
     utterance.onend = resolve;
     utterance.onerror = resolve;
     window.speechSynthesis.speak(utterance);

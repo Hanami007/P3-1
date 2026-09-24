@@ -9,6 +9,9 @@ from app.routers import announcements, buildings, cards, chatbot, logs, presence
 from app.services import camera_wake
 
 logging.basicConfig(level=logging.INFO)
+# httpx logs every request URL at INFO, and the Gemini URL carries the API
+# key as a query param -- keep it out of the console/logs.
+logging.getLogger("httpx").setLevel(logging.WARNING)
 
 app = FastAPI(title="CS Smart Kiosk API", version="0.1.0")
 

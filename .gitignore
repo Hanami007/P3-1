@@ -14,3 +14,6 @@ frontend/dist/
 .idea/
 .DS_Store
 Thumbs.db
+
+# SQLite databases (created by `python -m app.seed`)
+*.db

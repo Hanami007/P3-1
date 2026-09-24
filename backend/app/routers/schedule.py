@@ -6,6 +6,7 @@ from app.models import AccessLog, ExamEntry, Role, ScheduleEntry
 from app.permissions import ROLE_HEADER, ensure_role, resolve_role
 from app.schemas import ExamEntryOut, ScheduleEntryOut, StudentLiveStatus
 from app.services.live_status import calculate_student_live_status
+from app.services.student_data import exams_query, schedule_query
 
 router = APIRouter(prefix="/api/students", tags=["schedule"])
 
@@ -33,7 +34,12 @@ def get_schedule(
     x_card_uid: str | None = ROLE_HEADER,
 ):
     role = _authorize(db, student_card_uid, x_card_uid)
-    entries = db.query(ScheduleEntry).join(ScheduleEntry.student).filter_by(card_uid=student_card_uid).all()
+    student, _ = resolve_role(db, student_card_uid)
+    entries = (
+        schedule_query(db, student.id).order_by(ScheduleEntry.day_of_week, ScheduleEntry.start_time).all()
+        if student
+        else []
+    )
     db.add(AccessLog(card_uid=x_card_uid, role=role.value, action="schedule_view", granted=True))
     db.commit()
     return entries
@@ -46,7 +52,8 @@ def get_exams(
     x_card_uid: str | None = ROLE_HEADER,
 ):
     role = _authorize(db, student_card_uid, x_card_uid)
-    entries = db.query(ExamEntry).join(ExamEntry.student).filter_by(card_uid=student_card_uid).all()
+    student, _ = resolve_role(db, student_card_uid)
+    entries = exams_query(db, student.id).order_by(ExamEntry.exam_date, ExamEntry.start_time).all() if student else []
     db.add(AccessLog(card_uid=x_card_uid, role=role.value, action="exam_view", granted=True))
     db.commit()
     return entries

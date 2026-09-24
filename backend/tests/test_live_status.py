@@ -1,6 +1,14 @@
 from datetime import datetime
-from app.models import CardHolder, Course, ExamEntry, Role, Room, ScheduleEntry
+from app.models import CardHolder, Course, CourseSection, Enrollment, Role, Room, ScheduleEntry
 from app.services.live_status import calculate_student_live_status
+
+
+def _enrolled_section(db, holder, course):
+    section = CourseSection(course_id=course.id, section_no="1", term="1/2569")
+    db.add(section)
+    db.flush()
+    db.add(Enrollment(card_holder_id=holder.id, section_id=section.id))
+    return section
 
 
 def test_live_status_ongoing_late(db_session):
@@ -19,8 +27,7 @@ def test_live_status_ongoing_late(db_session):
 
     # Schedule on Monday (day 0) 09:00 - 12:00
     entry = ScheduleEntry(
-        student_id=holder.id,
-        course_id=course.id,
+        section_id=_enrolled_section(db_session, holder, course).id,
         day_of_week=0,
         start_time="09:00",
         end_time="12:00",
@@ -55,8 +62,7 @@ def test_live_status_upcoming_soon(db_session):
     db_session.flush()
 
     entry = ScheduleEntry(
-        student_id=holder.id,
-        course_id=course.id,
+        section_id=_enrolled_section(db_session, holder, course).id,
         day_of_week=0,
         start_time="10:00",
         end_time="12:00",
