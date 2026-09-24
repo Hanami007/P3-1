@@ -7,6 +7,13 @@ const speechSynthesisSupported = typeof window !== "undefined" && "speechSynthes
 const VOICE_SUPPORTED = Boolean(SpeechRecognitionCtor) && speechSynthesisSupported;
 const MAX_LISTEN_ERRORS = 3;
 
+const STATUS_COPY = {
+  idle: { label: "พร้อมฟัง" },
+  listening: { label: "กำลังฟัง..." },
+  thinking: { label: "กำลังค้นข้อมูล..." },
+  speaking: { label: "กำลังตอบ..." },
+};
+
 // Setting utterance.lang alone isn't enough: if the OS default voice is
 // English, Chrome/Edge read Thai text with it. Pick a Thai voice explicitly.
 // getVoices() is empty until the browser fires "voiceschanged", so cache it.
@@ -40,10 +47,14 @@ function speak(text) {
   });
 }
 
-export default function ChatWidget({ cardUid, autoStart = false, greeting, noiseData, quickPrompts = [] }) {
-  const [messages, setMessages] = useState([
-    { role: "bot", text: greeting || "สวัสดีค่ะ สอบถามข้อมูลสาขาวิทยาการคอมพิวเตอร์ อาคาร หรือสถานที่ได้เลยค่ะ" },
-  ]);
+export default function ChatWidget({ cardUid, autoStart = false, greeting, noiseData, quickPrompts = [], onAnswered }) {
+  // Only the current turn is shown on screen (see the answer panel below) --
+  // a shared kiosk shouldn't leave the previous visitor's conversation
+  // sitting on screen, and a glance at "the answer" beats reading back a
+  // transcript. `question` stays null until someone actually asks
+  // something, so the panel opens on just the greeting.
+  const [question, setQuestion] = useState(null);
+  const [answer, setAnswer] = useState(greeting || "สวัสดีค่ะ สอบถามข้อมูลสาขาวิทยาการคอมพิวเตอร์ อาคาร หรือสถานที่ได้เลยค่ะ");
   const [input, setInput] = useState("");
   const [busy, setBusy] = useState(false);
   const [voiceMode, setVoiceMode] = useState(autoStart && VOICE_SUPPORTED);
@@ -57,18 +68,20 @@ export default function ChatWidget({ cardUid, autoStart = false, greeting, noise
 
   useEffect(() => {
     if (greeting) {
-      setMessages([{ role: "bot", text: greeting }]);
+      setQuestion(null);
+      setAnswer(greeting);
     }
   }, [greeting]);
 
   async function respondTo(text) {
-    if (!text || busy) return;
-    setMessages((m) => [...m, { role: "user", text }]);
+    if (!text || busy) return "";
+    setQuestion(text);
     setBusy(true);
     let reply = "";
     try {
       reply = (await api.chat(text, cardUid)).reply;
-      setMessages((m) => [...m, { role: "bot", text: reply }]);
+      setAnswer(reply);
+      onAnswered?.(text, reply);
       if (voiceModeRef.current) {
         setSpeaking(true);
         await speak(reply);
@@ -77,7 +90,7 @@ export default function ChatWidget({ cardUid, autoStart = false, greeting, noise
       }
     } catch (err) {
       reply = `ขออภัย เกิดข้อผิดพลาด: ${err.message}`;
-      setMessages((m) => [...m, { role: "bot", text: reply }]);
+      setAnswer(reply);
     } finally {
       setBusy(false);
     }
@@ -105,13 +118,10 @@ export default function ChatWidget({ cardUid, autoStart = false, greeting, noise
       recognitionRef.current = null;
       setListening(false);
       errorStreakRef.current = 0;
-      const reply = await respondTo(transcript);
-      if (voiceModeRef.current) {
-        setSpeaking(true);
-        await speak(reply);
-        setSpeaking(false);
-        if (voiceModeRef.current) startListening();
-      }
+      // respondTo() already speaks the reply and restarts listening itself
+      // when voice mode is on (see below) -- doing it again here spoke
+      // every answer twice and reopened the mic mid-speech.
+      await respondTo(transcript);
     };
 
     recognition.onerror = () => {
@@ -167,24 +177,26 @@ export default function ChatWidget({ cardUid, autoStart = false, greeting, noise
     }
   }
 
+  const status = speaking ? "speaking" : listening ? "listening" : busy ? "thinking" : "idle";
+
   return (
     <div className="card chat">
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
         <h3 style={{ margin: 0 }}>AI ผู้ช่วยประจำสาขา</h3>
         {VOICE_SUPPORTED && (
           <button className={`btn ${voiceMode ? "" : "secondary"}`} onClick={toggleVoiceMode}>
-            {speaking ? "🔊 กำลังพูด" : listening ? "🎙️ กำลังฟัง" : voiceMode ? "🎙️ โหมดเสียง" : "🎙️ เริ่มสนทนาด้วยเสียง"}
+            {voiceMode ? "🎙️ โหมดเสียง" : "🎙️ เริ่มสนทนาด้วยเสียง"}
           </button>
         )}
       </div>
 
-      <div className="chat-log">
-        {messages.map((m, i) => (
-          <div key={i} className={`chat-bubble ${m.role}`}>
-            {m.text}
-          </div>
-        ))}
-        {busy && <div className="chat-bubble bot">กำลังพิมพ์...</div>}
+      <div className="answer-panel">
+        <div className="answer-status">
+          <span className={`answer-status-dot ${status}`} />
+          {STATUS_COPY[status].label}
+        </div>
+        {question && <div className="answer-question">คุณถาม: {question}</div>}
+        <div className="answer-text">{answer}</div>
       </div>
 
       {/* Noise Warning if ambient/peak noise was loud */}

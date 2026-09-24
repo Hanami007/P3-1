@@ -10,8 +10,11 @@ export default function StudentDashboard({ session, onEndSession }) {
   const [schedule, setSchedule] = useState([]);
   const [exams, setExams] = useState([]);
   const [announcements, setAnnouncements] = useState([]);
-  const [showFullSchedule, setShowFullSchedule] = useState(false);
   const [error, setError] = useState("");
+  // Hidden until the visitor actually asks about it -- see onAnswered below.
+  const [showSchedule, setShowSchedule] = useState(false);
+  const [showExams, setShowExams] = useState(false);
+  const [showAnnouncements, setShowAnnouncements] = useState(false);
 
   useEffect(() => {
     if (!session) {
@@ -42,6 +45,15 @@ export default function StudentDashboard({ session, onEndSession }) {
   }, [session, navigate]);
 
   if (!session) return null;
+
+  // Reveal only the table someone actually asked about, keyed off their own
+  // question text -- not the AI's reply, which may not repeat those words.
+  function handleAnswered(question) {
+    const q = question.toLowerCase();
+    if (/ตารางเรียน|เรียนวัน|วิชาเรียน|เรียนวิชา|เรียนอะไร|คาบ/.test(q)) setShowSchedule(true);
+    if (/ตารางสอบ|สอบ|กลางภาค|ปลายภาค/.test(q)) setShowExams(true);
+    if (/ประกาศ|ข่าวสาร|ข่าว/.test(q)) setShowAnnouncements(true);
+  }
 
   const currentGreeting =
     session.smartGreeting ||
@@ -94,6 +106,7 @@ export default function StudentDashboard({ session, onEndSession }) {
             autoStart={true}
             greeting={currentGreeting}
             noiseData={session.noiseData}
+            onAnswered={handleAnswered}
             quickPrompts={[
               "📅 วันนี้มีเรียนวิชาอะไรบ้าง",
               "📍 ห้องเรียนอยู่ที่ไหน เดินไปยังไง",
@@ -104,19 +117,11 @@ export default function StudentDashboard({ session, onEndSession }) {
           />
         </div>
 
-        {/* Collapsible Full Tables View (Accessible on demand) */}
-        <div className="full-schedule-drawer">
-          <button
-            className="btn secondary drawer-toggle-btn"
-            onClick={() => setShowFullSchedule(!showFullSchedule)}
-          >
-            {showFullSchedule
-              ? "▲ ซ่อนตารางเรียนและข้อมูลเต็ม"
-              : "▼ ดูตารางเรียนประจำสัปดาห์ / ตารางสอบ / ข่าวสารทั้งหมด (ข้อมูลตาราง)"}
-          </button>
-
-          {showFullSchedule && (
-            <div className="grid full-schedule-grid" style={{ marginTop: 16 }}>
+        {/* Data tables stay hidden until someone actually asks about them
+            (see handleAnswered above) -- not shown by default. */}
+        {(showSchedule || showExams || showAnnouncements) && (
+          <div className="grid full-schedule-grid">
+            {showSchedule && (
               <div className="card">
                 <h3 style={{ marginTop: 0 }}>ตารางเรียนประจำสัปดาห์</h3>
                 <table>
@@ -149,7 +154,9 @@ export default function StudentDashboard({ session, onEndSession }) {
                   </tbody>
                 </table>
               </div>
+            )}
 
+            {showExams && (
               <div className="card">
                 <h3 style={{ marginTop: 0 }}>ตารางสอบ</h3>
                 <table>
@@ -182,7 +189,9 @@ export default function StudentDashboard({ session, onEndSession }) {
                   </tbody>
                 </table>
               </div>
+            )}
 
+            {showAnnouncements && (
               <div className="card">
                 <h3 style={{ marginTop: 0 }}>ข่าวสารสาขา</h3>
                 {announcements.map((a) => (
@@ -193,9 +202,9 @@ export default function StudentDashboard({ session, onEndSession }) {
                 ))}
                 {announcements.length === 0 && <p style={{ color: "var(--muted)" }}>ไม่มีประกาศ</p>}
               </div>
-            </div>
-          )}
-        </div>
+            )}
+          </div>
+        )}
       </div>
     </div>
   );

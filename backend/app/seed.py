@@ -24,6 +24,7 @@ from app.models import (
     Role,
     Room,
     ScheduleEntry,
+    UniversityInfo,
 )
 
 TERM = "1/2569"
@@ -122,6 +123,23 @@ def run():
     Base.metadata.create_all(bind=engine)
     db = SessionLocal()
     try:
+        # university_info is single-row; `name_th` is its natural key.
+        get_or_create(
+            db,
+            UniversityInfo,
+            {"name_th": "มหาวิทยาลัยแม่โจ้"},
+            {
+                "name_en": "Maejo University",
+                "founded_year": "เริ่มก่อตั้งเป็นโรงเรียนฝึกหัดครูประถมกสิกรรมปี พ.ศ. 2477 "
+                "และยกฐานะเป็นมหาวิทยาลัยแม่โจ้ในปี พ.ศ. 2539",
+                "location": "ตำบลหนองหาร อำเภอสันทราย จังหวัดเชียงใหม่",
+                "campuses": "วิทยาเขตหลักเชียงใหม่ วิทยาเขตแม่โจ้-แพร่ เฉลิมพระเกียรติ และวิทยาเขตแม่โจ้-ชุมพร",
+                "about": "มีชื่อเสียงด้านเกษตรศาสตร์ ทรัพยากรธรรมชาติ และสิ่งแวดล้อม "
+                "ภายใต้แนวคิด Green and Eco University เน้นเกษตรอินทรีย์และความยั่งยืน",
+                "website": "https://www.mju.ac.th",
+            },
+        )
+
         # department_info is single-row; `name_th` is its natural key.
         get_or_create(
             db,

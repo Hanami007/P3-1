@@ -5,7 +5,7 @@ and read fresh each time, so edits to the DB show up without a restart."""
 
 from sqlalchemy.orm import Session, selectinload
 
-from app.models import Announcement, Building, DepartmentInfo, Personnel, ProblemContact
+from app.models import Announcement, Building, DepartmentInfo, Personnel, ProblemContact, UniversityInfo
 
 
 def _join(*parts: str | None) -> str:
@@ -14,6 +14,20 @@ def _join(*parts: str | None) -> str:
 
 def build_knowledge_context(db: Session) -> str:
     lines: list[str] = []
+
+    uni = db.query(UniversityInfo).first()
+    if uni:
+        lines.append("## เกี่ยวกับมหาวิทยาลัย")
+        lines.append(f"ชื่อ: {uni.name_th}" + (f" ({uni.name_en})" if uni.name_en else ""))
+        for label, value in [
+            ("ก่อตั้ง", uni.founded_year),
+            ("ที่ตั้ง", uni.location),
+            ("วิทยาเขต", uni.campuses),
+            ("จุดเด่น", uni.about),
+            ("Website", uni.website),
+        ]:
+            if value:
+                lines.append(f"{label}: {value}")
 
     dept = db.query(DepartmentInfo).first()
     if dept:

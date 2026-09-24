@@ -9,9 +9,28 @@ from app.models import (
     Personnel,
     ProblemContact,
     Role,
+    UniversityInfo,
 )
 from app.routers.chatbot import _build_student_context
 from app.services.knowledge import build_knowledge_context
+
+
+def test_knowledge_context_includes_university_info(db_session):
+    db_session.add(
+        UniversityInfo(
+            name_th="มหาวิทยาลัยแม่โจ้",
+            name_en="Maejo University",
+            location="อำเภอสันทราย จังหวัดเชียงใหม่",
+            website="https://www.mju.ac.th",
+        )
+    )
+    db_session.commit()
+
+    text = build_knowledge_context(db_session)
+    assert "มหาวิทยาลัยแม่โจ้" in text
+    assert "Maejo University" in text
+    assert "อำเภอสันทราย จังหวัดเชียงใหม่" in text
+    assert "https://www.mju.ac.th" in text
 
 
 def test_knowledge_context_reads_db(db_session):

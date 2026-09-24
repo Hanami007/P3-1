@@ -27,6 +27,7 @@ class BuildingOut(BaseModel):
     name_en: str | None = None
     short_name: str | None = None
     description: str | None = None
+    image_url: str | None = None
     rooms: list[RoomOut] = []
 
 

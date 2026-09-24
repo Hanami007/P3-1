@@ -7,9 +7,10 @@
 
 | ตาราง | คำอธิบาย | ฟิลด์สำคัญ |
 |---|---|---|
+| `university_info` | ข้อมูลมหาวิทยาลัยโดยรวม (1 แถว) — คนละส่วนกับ `department_info` ที่เป็นข้อมูลสาขา | `name_th`, `name_en`, `founded_year`, `location`, `campuses`, `about`, `website` |
 | `department_info` | ข้อมูลสาขา (1 แถว) | `name_th`, `address`, `phone`, `email`, `facebook`, `line`, `website`, `office_hours` |
 | `personnels` | อาจารย์และเจ้าหน้าที่ | `title`, `full_name`, `position` (lecturer/staff), `phone`, `email`, `room_id` |
-| `buildings` | อาคาร (`code` = หมายเลขตึกของมหาวิทยาลัย เช่น `105`) | `code`, `name_th`, `name_en`, `short_name` (ชื่อที่นักศึกษาเรียก เช่น "ตึกวิท" — AI ใช้ตอนพูด), `description` |
+| `buildings` | อาคาร (`code` = หมายเลขตึกของมหาวิทยาลัย เช่น `105`) | `code`, `name_th`, `name_en`, `short_name` (ชื่อที่นักศึกษาเรียก เช่น "ตึกวิท" — AI ใช้ตอนพูด), `description`, `image_url` (path เช่น `/static/buildings/105.jpg` — ว่างได้ ถ้าว่างหน้าเว็บจะโชว์ไอคอน placeholder แทน ดูวิธีเพิ่มรูปที่ `backend/app/static/buildings/README.md`) |
 | `rooms` | ห้องภายในอาคาร — unique (`building_id`, `room_number`) | `building_id`, `room_number`, `floor` (ว่างได้), `room_type` |
 | `problem_contacts` | เมื่อมีปัญหาต้องไปที่ไหน | `topic`, `office`, `building_id` (ว่างได้), `location_note`, `phone`, `sort_order` |
 | `announcements` | ข่าวสาร/ประกาศ (AI เห็นเฉพาะ `audience = all`) | `title`, `body`, `audience` (all/cs_student/staff), `created_at` |

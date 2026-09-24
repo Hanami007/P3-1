@@ -125,34 +125,69 @@ th {
 .chat {
   display: flex;
   flex-direction: column;
-  height: 420px;
 }
 
-.chat-log {
+/* One answer at a time -- see ChatWidget.jsx. A shared kiosk shouldn't
+   leave a scrolling transcript of the previous visitor's questions on
+   screen, and a single glanceable result suits voice-first use better
+   than reading back a chat log. */
+.answer-panel {
   flex: 1;
-  overflow-y: auto;
   display: flex;
   flex-direction: column;
+  justify-content: center;
   gap: 10px;
-  padding: 8px 4px;
+  padding: 28px 8px;
+  min-height: 180px;
 }
 
-.chat-bubble {
-  max-width: 75%;
-  padding: 10px 14px;
-  border-radius: 14px;
-  line-height: 1.4;
+.answer-status {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  color: var(--muted);
 }
 
-.chat-bubble.user {
-  align-self: flex-end;
+.answer-status-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--muted);
+}
+
+.answer-status-dot.listening {
+  background: var(--ok);
+  box-shadow: 0 0 0 4px rgba(52, 211, 153, 0.2);
+  animation: status-pulse 1.2s ease-in-out infinite;
+}
+
+.answer-status-dot.thinking {
+  background: var(--warn);
+  animation: status-pulse 0.8s ease-in-out infinite;
+}
+
+.answer-status-dot.speaking {
   background: var(--accent);
-  color: #06121f;
+  box-shadow: 0 0 0 4px rgba(59, 158, 255, 0.2);
+  animation: status-pulse 0.6s ease-in-out infinite;
 }
 
-.chat-bubble.bot {
-  align-self: flex-start;
-  background: var(--panel-border);
+@keyframes status-pulse {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.6; transform: scale(1.3); }
+}
+
+.answer-question {
+  font-size: 14px;
+  color: var(--muted);
+}
+
+.answer-text {
+  font-size: 22px;
+  line-height: 1.5;
+  color: var(--text);
+  animation: fadeIn 0.25s ease;
 }
 
 .chat-input {
@@ -634,9 +669,8 @@ th {
   flex-direction: column;
 }
 
-.conversational-container .chat-log {
+.conversational-container .answer-panel {
   flex: 1;
-  max-height: 380px;
 }
 
 .chat-noise-alert {
@@ -691,32 +725,67 @@ th {
 }
 
 /* ==========================================================================
-   Collapsible Full Schedule Drawer
+   Full Schedule Data -- always visible, no click needed
    ========================================================================== */
-.full-schedule-drawer {
-  margin-top: 8px;
-}
-
-.drawer-toggle-btn {
-  width: 100%;
-  padding: 14px 20px;
-  font-size: 15px;
-  border: 1px dashed var(--muted);
-  border-radius: 12px;
-  text-align: center;
-}
-
-.drawer-toggle-btn:hover {
-  border-color: var(--accent);
-  color: var(--accent);
-}
-
 .full-schedule-grid {
+  margin-top: 8px;
   animation: fadeIn 0.3s ease;
 }
 
 @keyframes fadeIn {
   from { opacity: 0; transform: translateY(-8px); }
   to { opacity: 1; transform: translateY(0); }
+}
+
+/* ==========================================================================
+   Building directory with photos (GuestKiosk)
+   ========================================================================== */
+.building-list {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.building-item {
+  display: flex;
+  gap: 14px;
+  padding-bottom: 16px;
+  border-bottom: 1px solid var(--panel-border);
+}
+
+.building-item:last-child {
+  border-bottom: none;
+  padding-bottom: 0;
+}
+
+.building-photo,
+.building-photo-placeholder {
+  width: 96px;
+  height: 96px;
+  flex-shrink: 0;
+  border-radius: 12px;
+  object-fit: cover;
+  background: var(--bg);
+  border: 1px solid var(--panel-border);
+}
+
+.building-photo-placeholder {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--muted);
+}
+
+.building-photo-placeholder svg {
+  width: 36px;
+  height: 36px;
+  stroke: currentColor;
+  fill: none;
+  stroke-width: 1.5;
+}
+
+.building-info {
+  flex: 1;
+  min-width: 0;
 }
 

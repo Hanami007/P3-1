@@ -32,6 +32,23 @@ class DepartmentInfo(Base):
     office_hours: Mapped[str | None] = mapped_column(String(200), nullable=True)
 
 
+class UniversityInfo(Base):
+    """Single-row table: general facts about the whole university (not just
+    this department) -- history, location, campuses. Answers "แม่โจ้คือ
+    มหาวิทยาลัยอะไร" / "ก่อตั้งเมื่อไหร่" style questions from any visitor."""
+
+    __tablename__ = "university_info"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    name_th: Mapped[str] = mapped_column(String(200))
+    name_en: Mapped[str | None] = mapped_column(String(200), nullable=True)
+    founded_year: Mapped[str | None] = mapped_column(String(100), nullable=True)
+    location: Mapped[str | None] = mapped_column(String(300), nullable=True)
+    campuses: Mapped[str | None] = mapped_column(String(300), nullable=True)
+    about: Mapped[str | None] = mapped_column(String(1000), nullable=True)
+    website: Mapped[str | None] = mapped_column(String(200), nullable=True)
+
+
 class Personnel(Base):
     """Lecturers and support staff (not card holders -- they may not have a card)."""
 
@@ -169,6 +186,9 @@ class Building(Base):
     # What students actually call it ("ตึกวิท") -- used when speaking.
     short_name: Mapped[str | None] = mapped_column(String(50), nullable=True)
     description: Mapped[str | None] = mapped_column(String(500), nullable=True)
+    # Path under /static, e.g. "/static/buildings/105.jpg" -- see
+    # backend/app/static/buildings/README.md for how to add real photos.
+    image_url: Mapped[str | None] = mapped_column(String(300), nullable=True)
 
     rooms: Mapped[list["Room"]] = relationship(back_populates="building")
 
